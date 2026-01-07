@@ -4,6 +4,7 @@ import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/mid
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 type ProductItem = {
   id: string
