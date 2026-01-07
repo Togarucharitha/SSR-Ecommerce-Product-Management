@@ -6,12 +6,15 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
+// 🔥 BOOTSTRAP ADMIN CONSTANTS (TEMPORARY)
+const BOOTSTRAP_ADMIN_EMAIL = 'admin@yourapp.com'
+const BOOTSTRAP_ADMIN_PASSWORD = 'admin123'
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { email, password } = body
 
-    // Validate input
     if (!email || !password) {
       return NextResponse.json(
         { success: false, error: 'Email and password are required' },
@@ -19,13 +22,49 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Find user by email
+    const normalizedEmail = email.toLowerCase().trim()
     const prisma = getPrisma()
 
+    // 🔥 FIND USER
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase().trim() },
+      where: { email: normalizedEmail },
     })
 
+    // 🔥 BOOTSTRAP ADMIN LOGIN (BYPASS)
+    if (
+      normalizedEmail === BOOTSTRAP_ADMIN_EMAIL &&
+      password === BOOTSTRAP_ADMIN_PASSWORD &&
+      user
+    ) {
+      const token = generateToken({
+        userId: user.id,
+        email: user.email,
+        role: 'admin', // FORCE ADMIN
+      })
+
+      const response = NextResponse.json({
+        success: true,
+        message: 'Admin login successful',
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: 'admin',
+        },
+      })
+
+      response.cookies.set('auth-token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7,
+        path: '/',
+      })
+
+      return response
+    }
+
+    // ❌ Normal user not found
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
@@ -33,7 +72,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verify password
+    // 🔐 NORMAL PASSWORD CHECK
     const isPasswordValid = await comparePassword(password, user.password)
 
     if (!isPasswordValid) {
@@ -43,24 +82,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Generate JWT token
+    // 🔑 NORMAL JWT GENERATION
     const token = generateToken({
       userId: user.id,
       email: user.email,
       role: user.role as 'admin' | 'user',
     })
-    
-    // Debug token generation
-    console.log('[Login API] Token generated:', {
-      tokenLength: token.length,
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      jwtSecretLength: process.env.JWT_SECRET?.length || 0,
-      jwtSecretSet: !!process.env.JWT_SECRET && process.env.JWT_SECRET !== 'your-secret-key-change-in-production',
-    })
 
-    // Create response with HTTP-only cookie
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
@@ -72,46 +100,20 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    // Set HTTP-only cookie with token
-    // Note: secure flag should be true in production (HTTPS required)
-    // In development, secure=false allows cookies over HTTP
-    const isProduction = process.env.NODE_ENV === 'production'
-    const isVercel = process.env.VERCEL === '1'
-    
     response.cookies.set('auth-token', token, {
-      httpOnly: true,
-      secure: isProduction || isVercel, // Enable secure cookies in production/Vercel
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-      path: '/',
-    })
-    
-    // Debug logging
-    console.log('[Login API] Cookie set:', {
-      name: 'auth-token',
-      hasValue: !!token,
-      tokenLength: token?.length,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
     })
 
     return response
   } catch (error: any) {
     console.error('Login error:', error)
-    console.error('Error details:', {
-      message: error?.message,
-      stack: error?.stack,
-      name: error?.name,
-    })
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Login failed. Please try again.',
-        details: process.env.NODE_ENV === 'development' ? error?.message : undefined
-      },
+      { success: false, error: 'Login failed' },
       { status: 500 }
     )
   }
 }
-
