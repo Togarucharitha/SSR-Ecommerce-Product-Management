@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { comparePassword, generateToken } from '@/lib/auth'
 
 export const runtime = "nodejs"
@@ -20,6 +20,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Find user by email
+    const prisma = getPrisma()
+
     const user = await prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     })

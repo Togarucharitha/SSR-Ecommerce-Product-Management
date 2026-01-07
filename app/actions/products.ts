@@ -1,8 +1,8 @@
-'use server'
+"use server"
 
 import { revalidatePath } from 'next/cache'
 // No runtime Decimal import — pass decimal values as strings to Prisma
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { demoProducts } from '@/lib/demoData'
 import { createProductSchema, updateProductSchema } from '@/lib/validations/product'
 import type { CreateProductInput, UpdateProductInput } from '@/lib/validations/product'
@@ -17,6 +17,8 @@ export async function createProduct(input: CreateProductInput) {
 
     // Create product in database
     // Convert price number to Decimal for Prisma
+    const prisma = getPrisma()
+
     const product = await prisma.product.create({
       data: {
         name: validatedData.name,
@@ -75,6 +77,8 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
     const validatedData = updateProductSchema.parse(input)
 
     // Check if product exists
+    const prisma = getPrisma()
+
     const existingProduct = await prisma.product.findUnique({
       where: { id },
     })
@@ -145,6 +149,8 @@ export async function updateProduct(id: string, input: UpdateProductInput) {
 export async function deleteProduct(id: string) {
   try {
     // Check if product exists
+    const prisma = getPrisma()
+
     const existingProduct = await prisma.product.findUnique({
       where: { id },
     })
@@ -192,6 +198,8 @@ export async function deleteProduct(id: string) {
  */
 export async function getProduct(id: string) {
   try {
+    const prisma = getPrisma()
+
     const product = await prisma.product.findUnique({
       where: { id },
     })
@@ -231,6 +239,8 @@ export async function getProduct(id: string) {
  */
 export async function getAllProducts() {
   try {
+    const prisma = getPrisma()
+
     const products = await prisma.product.findMany({
       orderBy: {
         createdAt: 'desc',

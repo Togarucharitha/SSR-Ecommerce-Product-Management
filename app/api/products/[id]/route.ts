@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { updateProduct, deleteProduct } from '@/app/actions/products'
 import { uploadImage, deleteImage } from '@/lib/cloudinary'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
 
 export const runtime = "nodejs"
@@ -42,6 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
       if (files && files.length > 0) {
         // Fetch existing product to delete old images
+        const prisma = getPrisma()
         const existing = await prisma.product.findUnique({ where: { id: params.id } })
         if (existing && existing.images && existing.images.length) {
           try {

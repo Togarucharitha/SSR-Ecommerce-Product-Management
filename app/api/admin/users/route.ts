@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
 import { z } from 'zod'
@@ -35,6 +35,8 @@ export async function POST(req: NextRequest) {
     const validatedData = createUserSchema.parse(body)
 
     // Check if user already exists
+    const prisma = getPrisma()
+
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email.toLowerCase().trim() },
     })
@@ -101,6 +103,8 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const prisma = getPrisma()
+
     const users = await prisma.user.findMany({
       select: {
         id: true,

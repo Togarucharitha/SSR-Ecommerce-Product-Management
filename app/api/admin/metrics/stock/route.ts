@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
 
 export const runtime = "nodejs"
@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
 
   try {
     // Fetch all real products from DB (single source of truth)
+    const prisma = getPrisma()
     const dbProducts = await prisma.product.findMany({ select: { id: true, name: true, price: true, stock: true, category: true, createdAt: true } })
 
     const items = dbProducts.map(p => {

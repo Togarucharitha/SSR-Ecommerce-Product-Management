@@ -1,6 +1,6 @@
 import * as jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { prisma } from './prisma'
+import { getPrisma } from './prisma'
 
 // JWT secret - should be in environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
@@ -65,6 +65,8 @@ export async function getUserFromToken(token: string) {
   if (!payload) {
     return null
   }
+
+  const prisma = getPrisma()
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },

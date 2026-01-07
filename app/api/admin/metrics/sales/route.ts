@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { getPrisma } from '@/lib/prisma'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
 
 export const runtime = "nodejs"
@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
     // stored product fields: `salesCount` and `price`. We do NOT simulate or
     // distribute sales over time because there is no orders table with per-sale
     // timestamps in this schema. The database is the single source of truth.
+    const prisma = getPrisma()
     const dbProducts = await prisma.product.findMany({ select: { id: true, name: true, category: true, price: true, stock: true, salesCount: true, createdAt: true } })
 
     const filtered = dbProducts.filter(p => {
