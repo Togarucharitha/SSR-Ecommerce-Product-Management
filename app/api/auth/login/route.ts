@@ -73,9 +73,14 @@ export async function POST(req: NextRequest) {
     })
 
     // Set HTTP-only cookie with token
+    // Note: secure flag should be true in production (HTTPS required)
+    // In development, secure=false allows cookies over HTTP
+    const isProduction = process.env.NODE_ENV === 'production'
+    const isVercel = process.env.VERCEL === '1'
+    
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction || isVercel, // Enable secure cookies in production/Vercel
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',

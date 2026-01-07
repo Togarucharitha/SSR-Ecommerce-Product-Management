@@ -69,13 +69,9 @@ function LoginForm() {
         // Clear any error state
         setError(null)
         
-        // Wait a moment for cookie to be set, then redirect
-        // This ensures the cookie is available when middleware runs
-        setTimeout(() => {
-          console.log('Executing redirect to:', redirect)
-          // Use window.location.replace to avoid adding to history
-          window.location.replace(redirect)
-        }, 100)
+        // Use router.push for client-side navigation (preserves cookie)
+        // This is more reliable than window.location.replace
+        router.push(redirect)
         
         // Don't set loading to false - we're redirecting
         return
