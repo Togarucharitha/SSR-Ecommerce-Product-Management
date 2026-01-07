@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
 
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
 type ProductItem = {
   id: string
   name: string
