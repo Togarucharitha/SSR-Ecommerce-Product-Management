@@ -29,7 +29,7 @@ if (!BASE_URL) {
   process.exit(1)
 }
 
-const url = new URL(`${BASE_URL}/api/_admin/create-admin`)
+const url = new URL(`${BASE_URL}/api/admin/create-admin`)
 
 const data = JSON.stringify({
   name,

@@ -100,14 +100,6 @@ export async function POST(req: NextRequest) {
     }
   } catch (error: any) {
     console.error('Login error:', error)
-    // In development return the error message to aid debugging (do not enable in production)
-    if (process.env.NODE_ENV !== 'production') {
-      return NextResponse.json(
-        { success: false, error: 'Login failed', details: error?.message || String(error) },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json(
       { success: false, error: 'Login failed' },
       { status: 500 }

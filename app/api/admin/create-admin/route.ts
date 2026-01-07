@@ -17,7 +17,7 @@ export function GET() {
 
 /**
  * Create a new admin (admin-only endpoint)
- * POST /api/_admin/create-admin
+ * POST /api/admin/create-admin
  */
 export async function POST(req: NextRequest) {
   try {
@@ -64,5 +64,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: error?.message || 'Error' }, { status: 400 })
   }
 }
-
-
