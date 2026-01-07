@@ -18,96 +18,78 @@ async function verifyTokenInMiddleware(token: string): Promise<JWTPayload | null
   try {
     const secret = new TextEncoder().encode(JWT_SECRET)
     const { payload } = await jwtVerify(token, secret)
-    // Extract our custom payload fields
+
     return {
       userId: payload.userId as string,
       email: payload.email as string,
       role: payload.role as 'admin' | 'user',
     }
-  } catch (error: any) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('[Middleware verifyToken] Failed:', {
-        error: error?.message,
-        name: error?.name,
-        code: error?.code,
-        tokenLength: token?.length,
-        jwtSecretLength: JWT_SECRET?.length,
-        jwtSecretSet: !!JWT_SECRET && JWT_SECRET !== 'your-secret-key-change-in-production',
-      })
-    }
+  } catch {
     return null
   }
 }
 
-/**
- * Middleware to protect admin routes
- * Runs on every request
- */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Protect admin/dashboard routes
-  if (pathname.startsWith('/dashboard')) {
-    // Get token from cookie
+  // 🔒 Protect dashboard & dashboard APIs
+  if (pathname.startsWith('/dashboard') || pathname.startsWith('/api/dashboard')) {
     const token = request.cookies.get('auth-token')?.value
-    
-    // Debug logging in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Middleware] Checking dashboard access for:', pathname)
-      console.log('[Middleware] Token present:', !!token)
-      if (token) {
-        console.log('[Middleware] Token length:', token.length)
-      }
-    }
 
+    // ❌ No token
     if (!token) {
-      // Redirect to login if no token
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Middleware] No token found, redirecting to login')
+      // API → JSON
+      if (pathname.startsWith('/api')) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        )
       }
+
+      // Page → redirect
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     }
 
-    // Verify token (using middleware-compatible function)
     const payload = await verifyTokenInMiddleware(token)
 
+    // ❌ Invalid token
     if (!payload) {
-      // Invalid token - clear cookie and redirect
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Middleware] Token verification failed')
+      if (pathname.startsWith('/api')) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid token' },
+          { status: 401 }
+        )
       }
+
       const response = NextResponse.redirect(new URL('/login', request.url))
       response.cookies.delete('auth-token')
       return response
     }
 
-    // Check if user is admin for dashboard access
+    // ❌ Not admin
     if (payload.role !== 'admin') {
-      // Non-admin trying to access dashboard
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Middleware] User is not admin, role:', payload.role)
+      if (pathname.startsWith('/api')) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden' },
+          { status: 403 }
+        )
       }
+
       return NextResponse.redirect(new URL('/unauthorized', request.url))
     }
 
-    // Token is valid and user is admin - allow access
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Middleware] Access granted for admin user:', payload.email)
-    }
+    // ✅ Admin allowed
     return NextResponse.next()
   }
 
-  // Allow all other routes
   return NextResponse.next()
 }
 
-// Configure which routes the middleware runs on
 export const config = {
   matcher: [
     '/dashboard/:path*',
     '/api/dashboard/:path*',
   ],
 }
-

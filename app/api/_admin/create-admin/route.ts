@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getPrisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
+import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 export const runtime = "nodejs"
@@ -63,23 +64,33 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await hashPassword(data.password)
 
-    const user = await prisma.user.create({
-      data: {
-        name: data.name,
-        email: data.email.toLowerCase().trim(),
-        password: hashedPassword,
-        role: 'admin',
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    })
+    try {
+      const user = await prisma.user.create({
+        data: {
+          name: data.name,
+          email: data.email.toLowerCase().trim(),
+          password: hashedPassword,
+          role: 'admin',
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          createdAt: true,
+        },
+      })
 
-    return NextResponse.json({ success: true, message: 'Admin created successfully', user })
+      console.info('[create-admin] Admin created:', user.email)
+      return NextResponse.json({ success: true, message: 'Admin created successfully', user })
+    } catch (err: any) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        console.warn('[create-admin] Attempted to create duplicate admin (unique constraint)')
+        return NextResponse.json({ success: false, error: 'User with this email already exists' }, { status: 400 })
+      }
+
+      throw err
+    }
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, error: 'Validation failed', details: error.errors }, { status: 400 })
