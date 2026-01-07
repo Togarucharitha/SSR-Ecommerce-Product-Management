@@ -1,6 +1,8 @@
 import dynamic from 'next/dynamic'
 import { getProduct } from '@/app/actions/products'
 
+export const dynamic = 'force-dynamic'
+
 const ProductEditForm = dynamic(() => import('@/components/ProductEditForm'), { ssr: false })
 const DeleteProductButton = dynamic(() => import('@/components/DeleteProductButton'), { ssr: false })
 
