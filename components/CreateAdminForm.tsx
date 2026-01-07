@@ -34,7 +34,7 @@ export default function CreateAdminForm() {
     setMessage(null)
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/create-admin', {
+      const res = await fetch('/api/_admin/create-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
