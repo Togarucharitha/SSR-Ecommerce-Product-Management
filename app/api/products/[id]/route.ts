@@ -4,6 +4,10 @@ import { uploadImage, deleteImage } from '@/lib/cloudinary'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
 
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   // Require admin authentication
   const authResult = await requireAdmin(req)

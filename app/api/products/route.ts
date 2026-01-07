@@ -3,6 +3,10 @@ import { createProduct } from '@/app/actions/products'
 import { uploadImage } from '@/lib/cloudinary'
 import { requireAdmin, unauthorizedResponse, forbiddenResponse } from '@/lib/middleware'
 
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export async function POST(req: NextRequest) {
   // Require admin authentication
   const authResult = await requireAdmin(req)
