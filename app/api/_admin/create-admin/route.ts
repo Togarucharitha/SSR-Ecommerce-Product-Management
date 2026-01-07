@@ -16,7 +16,7 @@ const createAdminSchema = z.object({
 
 /**
  * Create a new admin (admin-only endpoint)
- * POST /api/admin/create-admin
+ * POST /api/_admin/create-admin
  */
 export async function POST(req: NextRequest) {
   const authResult = await requireAdmin(req)
@@ -68,3 +68,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Failed to create admin' }, { status: 500 })
   }
 }
+
+
