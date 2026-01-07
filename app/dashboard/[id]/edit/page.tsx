@@ -1,10 +1,10 @@
-import dynamic from 'next/dynamic'
+import dynamicImport from 'next/dynamic'
 import { getProduct } from '@/app/actions/products'
 
 export const dynamic = 'force-dynamic'
 
-const ProductEditForm = dynamic(() => import('@/components/ProductEditForm'), { ssr: false })
-const DeleteProductButton = dynamic(() => import('@/components/DeleteProductButton'), { ssr: false })
+const ProductEditForm = dynamicImport(() => import('@/components/ProductEditForm'), { ssr: false })
+const DeleteProductButton = dynamicImport(() => import('@/components/DeleteProductButton'), { ssr: false })
 
 export default async function EditPage({ params }: { params: { id: string } }) {
   const res = await getProduct(params.id)
