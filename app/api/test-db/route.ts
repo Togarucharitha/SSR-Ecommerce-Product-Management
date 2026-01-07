@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+// Test-only endpoint to verify DB connectivity; not intended for production use.
+
 /**
  * Test route to verify database connection
  * GET /api/test-db
