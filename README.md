@@ -103,7 +103,7 @@ PostgreSQL (Neon)
 
 Images are stored and served via Cloudinary CDN.
 
-📋 Environment Variables
+ Environment Variables
 
 Create a .env.local file:
 
@@ -119,7 +119,7 @@ DEFAULT_ADMIN_EMAIL=admin@example.com
 DEFAULT_ADMIN_PASSWORD=admin123
 DEFAULT_ADMIN_NAME=Admin
 
-🚀 Setup & Run Locally
+ Setup & Run Locally
 # Install dependencies
 npm install
 
@@ -138,7 +138,7 @@ npm run dev
 
 App runs at: http://localhost:3000
 
-🔒 Admin Access
+Admin Access
 
 Admin Routes
 
@@ -150,7 +150,7 @@ Admin Routes
 
 Only users with admin role can access these routes.
 
-🌐 Deployment
+ Deployment
 
 Works with Railway, Vercel, Render
 
@@ -160,17 +160,17 @@ Ensure production environment variables are set
 
 Run migrations on production DB before first use
 
-🧪 Production Checklist
+Production Checklist
 
-✅ Prisma client generated during build
+Prisma client generated during build
 
-✅ DATABASE_URL set in production
+DATABASE_URL set in production
 
-✅ JWT_SECRET secured
+JWT_SECRET secured
 
-✅ First admin created
+First admin created
 
-✅ Login & admin flows tested
+Login & admin flows tested
 
 🔮 Future Improvements
 
