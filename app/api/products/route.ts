@@ -8,14 +8,28 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export async function POST(req: NextRequest) {
-  // Require admin authentication
-  const authResult = await requireAdmin(req)
-  if (authResult.error || !authResult.user) {
-    return authResult.user === null && authResult.error?.includes('Admin')
-      ? forbiddenResponse()
-      : unauthorizedResponse(authResult.error || 'Authentication required')
-  }
   try {
+    // Require admin authentication
+    let authResult: any
+    try {
+      authResult = await requireAdmin(req)
+    } catch (authError: any) {
+      console.error('[POST /api/products] Auth middleware error:', authError)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Authentication failed',
+          details: authError?.message || 'Unexpected auth error',
+        },
+        { status: 500 }
+      )
+    }
+
+    if (authResult.error || !authResult.user) {
+      return authResult.user === null && authResult.error?.includes('Admin')
+        ? forbiddenResponse()
+        : unauthorizedResponse(authResult.error || 'Authentication required')
+    }
     // Validate Cloudinary environment variables early
     if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
       console.error('Missing Cloudinary environment variables')
@@ -26,6 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const contentType = req.headers.get('content-type') || ''
+    console.log(`[POST /api/products] Content-Type: ${contentType}, headers:`, Array.from(req.headers.entries()).map(([k, v]) => `${k}: ${v.substring(0, 100)}`))
 
     let payload: any = {}
 
@@ -35,116 +50,167 @@ export async function POST(req: NextRequest) {
     const isJson = contentType.includes('application/json')
     
     if (isFormData) {
-      const form = await req.formData()
-      const name = form.get('name') as string | null
-      const description = form.get('description') as string | null
-      const price = form.get('price') as string | null
-      const stock = form.get('stock') as string | null
-      const salesCount = form.get('salesCount') as string | null
-      const category = form.get('category') as string | null
+      try {
+        const form = await req.formData()
+        const name = form.get('name') as string | null
+        const description = form.get('description') as string | null
+        const price = form.get('price') as string | null
+        const stock = form.get('stock') as string | null
+        const salesCount = form.get('salesCount') as string | null
+        const category = form.get('category') as string | null
 
-      payload.name = name ?? undefined
-      payload.description = description ?? undefined
-      if (price !== null && price !== '') payload.price = Number(price)
-      if (stock !== null && stock !== '') payload.stock = Number(stock)
-      if (salesCount !== null && salesCount !== '') payload.salesCount = Number(salesCount)
-      payload.category = category ?? undefined
+        payload.name = name ?? undefined
+        payload.description = description ?? undefined
+        if (price !== null && price !== '') payload.price = Number(price)
+        if (stock !== null && stock !== '') payload.stock = Number(stock)
+        if (salesCount !== null && salesCount !== '') payload.salesCount = Number(salesCount)
+        payload.category = category ?? undefined
 
-      const files = form.getAll('images') as any[]
-      const imageUrls: string[] = []
-      for (const f of files) {
-        if (!f) continue
-        // If form value is a string (e.g., pasted URL), accept it
-        if (typeof f === 'string') {
-          if (f.trim()) imageUrls.push(f.trim())
-          continue
+        const files = form.getAll('images') as any[]
+        const imageUrls: string[] = []
+        for (const f of files) {
+          if (!f) continue
+          // If form value is a string (e.g., pasted URL), accept it
+          if (typeof f === 'string') {
+            if (f.trim()) imageUrls.push(f.trim())
+            continue
+          }
+          // Otherwise it's a File, convert to buffer
+          try {
+            const buf = Buffer.from(await f.arrayBuffer())
+            const url = await uploadImage(buf)
+            imageUrls.push(url)
+          } catch (uploadError: any) {
+            console.error('Error uploading image:', uploadError)
+            // Return error immediately with details
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'Failed to upload image. Please try again.',
+                details: uploadError?.message || 'Unknown upload error',
+              },
+              { status: 500 }
+            )
+          }
         }
-        // Otherwise it's a File, convert to buffer
-        try {
-          const buf = Buffer.from(await f.arrayBuffer())
-          const url = await uploadImage(buf)
-          imageUrls.push(url)
-        } catch (uploadError: any) {
-          console.error('Error uploading image:', uploadError)
-          // Return error immediately with details
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Failed to upload image. Please try again.',
-              details: uploadError?.message || 'Unknown upload error',
-            },
-            { status: 500 }
-          )
-        }
+
+        // If no images uploaded, set empty array (validation will handle this)
+        payload.images = imageUrls.length > 0 ? imageUrls : []
+      } catch (formError: any) {
+        console.error('[POST /api/products] FormData parsing error:', formError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to parse form data. Please try again.',
+            details: formError?.message || 'FormData parsing failed',
+          },
+          { status: 400 }
+        )
       }
-
-      // If no images uploaded, set empty array (validation will handle this)
-      payload.images = imageUrls.length > 0 ? imageUrls : []
     } else if (isJson) {
       // JSON body
-      const body = await req.json()
-      payload = body
-      // Ensure images is always an array
-      if (!payload.images) {
-        payload.images = []
+      try {
+        const body = await req.json()
+        payload = body
+        // Ensure images is always an array
+        if (!payload.images) {
+          payload.images = []
+        }
+      } catch (jsonError: any) {
+        console.error('[POST /api/products] JSON parsing error:', jsonError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to parse JSON. Please try again.',
+            details: jsonError?.message || 'JSON parsing failed',
+          },
+          { status: 400 }
+        )
       }
     } else {
       // Unknown content type - try FormData as default (most common for file uploads)
       console.warn('Unknown content-type, attempting FormData parsing:', contentType)
-      const form = await req.formData()
-      const name = form.get('name') as string | null
-      const description = form.get('description') as string | null
-      const price = form.get('price') as string | null
-      const stock = form.get('stock') as string | null
-      const category = form.get('category') as string | null
+      try {
+        const form = await req.formData()
+        const name = form.get('name') as string | null
+        const description = form.get('description') as string | null
+        const price = form.get('price') as string | null
+        const stock = form.get('stock') as string | null
+        const category = form.get('category') as string | null
 
-      payload.name = name ?? undefined
-      payload.description = description ?? undefined
-      if (price !== null && price !== '') payload.price = Number(price)
-      if (stock !== null && stock !== '') payload.stock = Number(stock)
-      payload.category = category ?? undefined
+        payload.name = name ?? undefined
+        payload.description = description ?? undefined
+        if (price !== null && price !== '') payload.price = Number(price)
+        if (stock !== null && stock !== '') payload.stock = Number(stock)
+        payload.category = category ?? undefined
 
-      const files = form.getAll('images') as any[]
-      const imageUrls: string[] = []
-      for (const f of files) {
-        if (!f) continue
-        if (typeof f === 'string') {
-          if (f.trim()) imageUrls.push(f.trim())
-          continue
+        const files = form.getAll('images') as any[]
+        const imageUrls: string[] = []
+        for (const f of files) {
+          if (!f) continue
+          if (typeof f === 'string') {
+            if (f.trim()) imageUrls.push(f.trim())
+            continue
+          }
+          try {
+            const buf = Buffer.from(await f.arrayBuffer())
+            const url = await uploadImage(buf)
+            imageUrls.push(url)
+          } catch (uploadError: any) {
+            console.error('Error uploading image:', uploadError)
+            // Return error immediately with details
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'Failed to upload image. Please try again.',
+                details: uploadError?.message || 'Unknown upload error',
+              },
+              { status: 500 }
+            )
+          }
         }
-        try {
-          const buf = Buffer.from(await f.arrayBuffer())
-          const url = await uploadImage(buf)
-          imageUrls.push(url)
-        } catch (uploadError: any) {
-          console.error('Error uploading image:', uploadError)
-          // Return error immediately with details
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Failed to upload image. Please try again.',
-              details: uploadError?.message || 'Unknown upload error',
-            },
-            { status: 500 }
-          )
-        }
+        payload.images = imageUrls.length > 0 ? imageUrls : []
+      } catch (fallbackError: any) {
+        console.error('[POST /api/products] Fallback FormData parsing error:', fallbackError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to parse request. Please try again.',
+            details: fallbackError?.message || 'Request parsing failed',
+          },
+          { status: 400 }
+        )
       }
-      payload.images = imageUrls.length > 0 ? imageUrls : []
     }
 
     // Ensure salesCount is a number and default to 0 when not provided.
     payload.salesCount = Number(payload.salesCount ?? 0)
-    // Log full payload for debugging (temporary): confirms salesCount flows through
-    console.log('Creating product with payload:', { ...payload, images: payload.images?.length || 0 })
+    
+    // Log full payload for debugging
+    console.log('[POST /api/products] Payload ready for processing:', {
+      name: payload.name,
+      description: payload.description ? payload.description.substring(0, 50) : 'N/A',
+      price: payload.price,
+      stock: payload.stock,
+      category: payload.category,
+      imageCount: payload.images?.length || 0,
+      salesCount: payload.salesCount,
+    })
 
     const res = await createProduct(payload)
     if (res?.success) {
+      console.log('[POST /api/products] Product created successfully:', res.data?.id)
       return NextResponse.json(res)
     }
-    console.error('Product creation failed:', res)
+    console.error('[POST /api/products] Product creation failed:', res)
     return NextResponse.json({ success: false, error: res?.error || 'Failed to create product' }, { status: 400 })
   } catch (error: any) {
-    console.error('POST /api/products error:', error)
+    console.error('[POST /api/products] Unexpected error:', {
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
+    })
     return NextResponse.json({
       success: false,
       error: error?.message || 'Failed to create product',
