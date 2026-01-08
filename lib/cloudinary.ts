@@ -26,6 +26,7 @@ export { cloudinary }
 
 /**
  * Upload a file to Cloudinary
+ * In serverless environments (Railway, Vercel, etc.), base64 encoding is more reliable than streaming
  * @param file - File buffer or base64 string
  * @param folder - Optional folder path in Cloudinary
  * @returns Promise with the uploaded image URL
@@ -52,42 +53,37 @@ export async function uploadImage(
         ],
       }
 
+      let dataUri: string
+
       if (Buffer.isBuffer(file)) {
-        const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-          if (error) {
-            console.error('[Cloudinary uploadImage] upload_stream error:', error?.message)
-            reject(error)
-          } else if (result) {
-            console.log('[Cloudinary uploadImage] Success:', result.secure_url)
-            resolve(result.secure_url)
-          } else {
-            reject(new Error('Upload failed: No result returned'))
-          }
-        })
-        
-        // Handle stream errors
-        stream.on('error', (error) => {
-          console.error('[Cloudinary uploadImage] Stream error:', error?.message)
-          reject(error)
-        })
-        
-        stream.end(file)
+        // Convert buffer to base64 data URI for serverless compatibility
+        // Base64 is more reliable than streams in Railway/serverless environments
+        const base64 = file.toString('base64')
+        dataUri = `data:image/jpeg;base64,${base64}`
+        console.log('[Cloudinary uploadImage] Converting buffer to base64 data URI (', file.length, 'bytes)')
+      } else if (typeof file === 'string') {
+        // Already a string (base64 or data URI)
+        dataUri = file
+        console.log('[Cloudinary uploadImage] Using provided string upload')
       } else {
-        cloudinary.uploader.upload(file, uploadOptions, (error, result) => {
-          if (error) {
-            console.error('[Cloudinary uploadImage] upload error:', error?.message)
-            reject(error)
-          } else if (result) {
-            console.log('[Cloudinary uploadImage] Success:', result.secure_url)
-            resolve(result.secure_url)
-          } else {
-            reject(new Error('Upload failed: No result returned'))
-          }
-        })
+        throw new Error('Invalid file type: Expected Buffer or string')
       }
+
+      // Use cloudinary.uploader.upload (not upload_stream) for serverless reliability
+      cloudinary.uploader.upload(dataUri, uploadOptions, (error, result) => {
+        if (error) {
+          console.error('[Cloudinary uploadImage] Upload failed:', error?.message || error)
+          reject(new Error(`Cloudinary upload failed: ${error?.message || 'Unknown error'}`))
+        } else if (result?.secure_url) {
+          console.log('[Cloudinary uploadImage] Success:', result.secure_url)
+          resolve(result.secure_url)
+        } else {
+          reject(new Error('Upload returned no URL'))
+        }
+      })
     } catch (syncError: any) {
-      console.error('[Cloudinary uploadImage] Sync error:', syncError?.message)
-      reject(syncError)
+      console.error('[Cloudinary uploadImage] Synchronous error:', syncError?.message)
+      reject(new Error(`Upload error: ${syncError?.message || 'Unknown error'}`))
     }
   })
 }
