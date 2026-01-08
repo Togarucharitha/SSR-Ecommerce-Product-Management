@@ -92,31 +92,44 @@ Cloudinary (image storage)
 #Architecture (High-Level)
 Client (Next.js)
    ↓
+
 Middleware (JWT + RBAC)
    ↓
+
+
 API Routes (Node.js)
    ↓
+
 Prisma ORM
    ↓
+
 PostgreSQL (Neon)
+
 
 
 Images are stored and served via Cloudinary CDN.
 
- Environment Variables
+
+#Environment Variables
 
 Create a .env.local file:
 
 DATABASE_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require
+
 JWT_SECRET=your-secret-key
+
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 CLOUDINARY_CLOUD_NAME=your_cloud_name
+
 CLOUDINARY_API_KEY=your_api_key
+
 CLOUDINARY_API_SECRET=your_api_secret
 
 DEFAULT_ADMIN_EMAIL=admin@example.com
+
 DEFAULT_ADMIN_PASSWORD=admin123
+
 DEFAULT_ADMIN_NAME=Admin
 
  Setup & Run Locally
@@ -150,37 +163,9 @@ Admin Routes
 
 Only users with admin role can access these routes.
 
- Deployment
 
-Works with Railway, Vercel, Render
 
-Prisma runs in Node.js runtime
 
-Ensure production environment variables are set
-
-Run migrations on production DB before first use
-
-Production Checklist
-
-Prisma client generated during build
-
-DATABASE_URL set in production
-
-JWT_SECRET secured
-
-First admin created
-
-Login & admin flows tested
-
-🔮 Future Improvements
-
-Payments integration
-
-Order management
-
-Email notifications
-
-Advanced analytics
 
 
 ---
