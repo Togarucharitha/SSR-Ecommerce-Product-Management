@@ -1,5 +1,7 @@
 "use server"
 
+// Ensure server action runs in Node.js runtime (not edge)
+// Next.js automatically handles this for "use server" with Prisma
 import { revalidatePath } from 'next/cache'
 // No runtime Decimal import — pass decimal values as strings to Prisma
 import { getPrisma } from '@/lib/prisma'

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { z } from 'zod'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,11 +24,8 @@ export async function POST(req: NextRequest) {
   try {
     console.log('[CREATE-ADMIN] Request started')
 
-    // Dynamic imports
     const { getPrisma } = await import('@/lib/prisma')
     const { hashPassword } = await import('@/lib/auth')
-    const { z } = await import('zod')
-    const { Prisma } = await import('@prisma/client')
 
     const prisma = getPrisma()
 
