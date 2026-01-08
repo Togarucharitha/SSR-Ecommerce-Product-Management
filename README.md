@@ -10,6 +10,8 @@ A full-stack Admin Dashboard for managing products, inventory, and sales metrics
 
 Deployment Link=https://observant-creativity-production-ff11.up.railway.app/
 
+Added a demo video with updated features: https://drive.google.com/file/d/1Rl3n_LHE2lIr8xw4AGgpCwBsv-Fr3nJ1/view?usp=sharing
+
 # Key Features
  Authentication & Security
 
