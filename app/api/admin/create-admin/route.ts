@@ -44,11 +44,30 @@ export async function POST(req: NextRequest) {
 
     console.log('[CREATE-ADMIN] Bootstrap mode:', isBootstrap)
 
+    // Pre-check: Verify email does not already exist to avoid unique constraint error
+    const normalizedEmail = data.email.toLowerCase().trim()
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, email: true, role: true },
+    })
+
+    if (existingUser) {
+      console.log('[CREATE-ADMIN] Email already exists:', normalizedEmail)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'An admin with this email already exists',
+          details: `Email ${normalizedEmail} is already registered.`,
+        },
+        { status: 409 } // 409 Conflict - standard HTTP status for duplicate resource
+      )
+    }
+
     // Create admin
     const user = await prisma.user.create({
       data: {
         name: data.name,
-        email: data.email.toLowerCase().trim(),
+        email: normalizedEmail,
         password: await hashPassword(data.password),
         role: 'admin',
       },

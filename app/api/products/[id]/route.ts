@@ -17,6 +17,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       : unauthorizedResponse(authResult.error || 'Authentication required')
   }
   try {
+    // Validate Cloudinary environment variables early
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('Missing Cloudinary environment variables')
+      return NextResponse.json(
+        { success: false, error: 'Image upload service not configured. Contact administrator.' },
+        { status: 500 }
+      )
+    }
+
     const contentType = req.headers.get('content-type') || ''
 
     let payload: any = {}
@@ -59,9 +68,22 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             imageUrls.push(f)
             continue
           }
-          const buf = Buffer.from(await f.arrayBuffer())
-          const url = await uploadImage(buf)
-          imageUrls.push(url)
+          try {
+            const buf = Buffer.from(await f.arrayBuffer())
+            const url = await uploadImage(buf)
+            imageUrls.push(url)
+          } catch (uploadError: any) {
+            console.error('Error uploading image:', uploadError)
+            // If image upload fails, return error immediately with details
+            return NextResponse.json(
+              {
+                success: false,
+                error: 'Failed to upload image. Please try again.',
+                details: uploadError?.message || 'Unknown upload error',
+              },
+              { status: 500 }
+            )
+          }
         }
 
         payload.images = imageUrls
@@ -75,7 +97,15 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (res?.success) return NextResponse.json(res)
     return NextResponse.json(res, { status: 400 })
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error?.message || 'Failed' }, { status: 500 })
+    console.error('PUT /api/products/[id] error:', error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error?.message || 'Failed to update product',
+        details: error?.stack || 'No additional details',
+      },
+      { status: 500 }
+    )
   }
 }
 
