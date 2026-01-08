@@ -182,6 +182,6 @@ Email notifications
 
 Advanced analytics
 
-2FA authentication
+
 ---
 
