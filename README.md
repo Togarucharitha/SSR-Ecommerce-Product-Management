@@ -15,7 +15,7 @@ Deployment Link=https://observant-creativity-production-ff11.up.railway.app/
 
 #JWT-based authentication
 
-Role-Based Access Control (Admin / User)
+ Role-Based Access Control (Admin / User)
 
 Secure password hashing with bcrypt
 
@@ -55,7 +55,7 @@ Manage product lifecycle
 
 # Tech Stack
 
-Frontend
+FRONTEND
 
 Next.js 14 (App Router)
 
@@ -67,17 +67,17 @@ Tailwind CSS
 
 Recharts
 
-Backend
+BACKEND
 
 Next.js API Routes
 
 Prisma ORM
 
-Database
+DATABASE
 
 PostgreSQL (Neon)
 
-Auth & Security
+AUTH & SECURITY
 
 JWT
 
@@ -85,7 +85,7 @@ bcryptjs
 
 jose
 
-Cloud
+CLOUD
 
 Cloudinary (image storage)
 
